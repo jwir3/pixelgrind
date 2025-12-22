@@ -170,3 +170,22 @@ function drawPixel(output, pos, r, g, b, a) {
   output[pos + 2] = b;
   output[pos + 3] = a;
 }
+
+export function doesPixelRGBDirectlyMatch(img1, img2, x, y) {
+  if (img1.width != img2.width || img1.height != img2.height) {
+    throw new Error('Images must have the same width and height')
+  }
+
+  const pixelIdx = (img1.width * y + x) << 2;
+
+  let img1Red = img1.data[pixelIdx];
+  let img2Red = img2.data[pixelIdx];
+
+  let img1Green = img1.data[pixelIdx + 1];
+  let img2Green = img2.data[pixelIdx + 1];
+
+  let img1Blue = img1.data[pixelIdx + 2];
+  let img2Blue = img2.data[pixelIdx + 2];
+
+  return img1Red === img2Red && img1Green === img2Green && img1Blue === img2Blue;
+}
