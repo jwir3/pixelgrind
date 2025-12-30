@@ -8,7 +8,7 @@ import {PNG} from 'pngjs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { antialiased, doesPixelRGBDirectlyMatch } from '../src/index.js';
+import { antialiased, compositePixel, copyPixel, doesPixelRGBDirectlyMatch, drawPixel } from '../src/index.js';
 
 const AA_PIXEL_RED = 245;
 const AA_PIXEL_GREEN = 93;
@@ -123,42 +123,38 @@ for (let y = 0; y < img.height; y++) {
     groundTruth[noAaPixelIdx] = isSame ? 0 : 1;
     results.expectedAaPixels += isSame ? 0 : 1;
 
-    groundTruthImage.data[pixelIdx] = isSame ? 255 : AA_GROUND_TRUTH_RED;
-    groundTruthImage.data[pixelIdx + 1] = isSame ? 255 : AA_GROUND_TRUTH_GREEN;
-    groundTruthImage.data[pixelIdx + 2] = isSame ? 255 : AA_GROUND_TRUTH_BLUE;
-    groundTruthImage.data[pixelIdx + 3] = isSame ? 0 : AA_GROUND_TRUTH_ALPHA;
+    if (!isSame) {
+      drawPixel(groundTruthImage.data,
+        pixelIdx,
+        AA_GROUND_TRUTH_RED,
+        AA_GROUND_TRUTH_GREEN,
+        AA_GROUND_TRUTH_BLUE,
+        AA_GROUND_TRUTH_ALPHA);
+    } else {
+      drawPixel(groundTruthImage.data, pixelIdx, 255, 255, 255, 0);
+    }
 
     // Place original pixel in overlay image
-    overlay.data[pixelIdx] = img.data[pixelIdx];
-    overlay.data[pixelIdx + 1] = img.data[pixelIdx + 1];
-    overlay.data[pixelIdx + 2] = img.data[pixelIdx + 2];
-    overlay.data[pixelIdx + 3] = img.data[pixelIdx + 3];
+    copyPixel(overlay.data, pixelIdx, img.data);
 
     let antiAliased = antialiased(img.data, x, y, img.width, img.height);
     if (antiAliased) {
       results.aaPixels++;
-      output.data[pixelIdx] = AA_PIXEL_RED;
-      output.data[pixelIdx + 1] = AA_PIXEL_GREEN;
-      output.data[pixelIdx + 2] = AA_PIXEL_BLUE;
-      output.data[pixelIdx + 3] = AA_PIXEL_ALPHA_OUTPUT;
+      drawPixel(output.data, pixelIdx, AA_PIXEL_RED, AA_PIXEL_GREEN, AA_PIXEL_BLUE, AA_PIXEL_ALPHA_OUTPUT);
 
       // Composite anti-aliased pixels with original image and save to overlay
-      let aaLevel = AA_PIXEL_ALPHA_OVERLAY / 255.0;
-      let oneMinusAALevel = 1.0 - aaLevel;
-      overlay.data[pixelIdx] = overlay.data[pixelIdx] = (img.data[pixelIdx] * oneMinusAALevel)
-        + (aaLevel * AA_PIXEL_RED);
-      overlay.data[pixelIdx + 1] = (img.data[pixelIdx + 1] * oneMinusAALevel) + (aaLevel * AA_PIXEL_GREEN);
-      overlay.data[pixelIdx + 2] = (img.data[pixelIdx + 2] * oneMinusAALevel) + (aaLevel * AA_PIXEL_BLUE);
-      overlay.data[pixelIdx + 3] = 255;
+      compositePixel(overlay.data, pixelIdx, AA_PIXEL_ALPHA_OUTPUT, img.data, output.data);
 
       // If the ground truth says we should not be anti-aliased
       if (groundTruth[noAaPixelIdx] == 0) {
         results.falsePositives++;
         // A false positive was encountered
-        differentialImage.data[pixelIdx] = AA_FALSE_POSITIVE_RED;
-        differentialImage.data[pixelIdx + 1] = AA_FALSE_POSITIVE_GREEN;
-        differentialImage.data[pixelIdx + 2] = AA_FALSE_POSITIVE_BLUE;
-        differentialImage.data[pixelIdx + 3] = AA_FALSE_POSITIVE_ALPHA;
+        drawPixel(differentialImage.data,
+          pixelIdx,
+          AA_FALSE_POSITIVE_RED,
+          AA_FALSE_POSITIVE_GREEN,
+          AA_FALSE_POSITIVE_BLUE,
+          AA_FALSE_POSITIVE_ALPHA);
       } else {
         results.truePositives++;
       }
@@ -167,10 +163,12 @@ for (let y = 0; y < img.height; y++) {
       if (groundTruth[noAaPixelIdx] == 1) {
         // A false negative was encountered
         results.falseNegatives++;
-        differentialImage.data[pixelIdx] = AA_FALSE_NEGATIVE_RED;
-        differentialImage.data[pixelIdx + 1] = AA_FALSE_NEGATIVE_GREEN;
-        differentialImage.data[pixelIdx + 2] = AA_FALSE_NEGATIVE_BLUE;
-        differentialImage.data[pixelIdx + 3] = AA_FALSE_NEGATIVE_ALPHA;
+        drawPixel(differentialImage.data,
+          pixelIdx,
+          AA_FALSE_NEGATIVE_RED,
+          AA_FALSE_NEGATIVE_GREEN,
+          AA_FALSE_NEGATIVE_BLUE,
+          AA_FALSE_NEGATIVE_ALPHA);
       }
     }
   }

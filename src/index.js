@@ -164,11 +164,27 @@ function colorDelta(img1, img2, k, m, yOnly) {
  * @param {number} b The blue component of the pixel.
  * @param {number} a The alpha component of the pixel.
  */
-function drawPixel(output, pos, r, g, b, a) {
+export function drawPixel(output, pos, r, g, b, a) {
   output[pos + 0] = r;
   output[pos + 1] = g;
   output[pos + 2] = b;
   output[pos + 3] = a;
+}
+
+export function copyPixel(output, pos, input) {
+  output[pos + 0] = input[pos + 0];
+  output[pos + 1] = input[pos + 1];
+  output[pos + 2] = input[pos + 2];
+  output[pos + 3] = input[pos + 3];
+}
+
+export function compositePixel(output, pos, alpha, input, layer) {
+  let aaLevel = alpha / 255.0;
+  let oneMinusAALevel = 1.0 - aaLevel;
+  output[pos + 0] = (input[pos + 0] * oneMinusAALevel) + (aaLevel * layer[pos + 0]);
+  output[pos + 1] = (input[pos + 1] * oneMinusAALevel) + (aaLevel * layer[pos + 1]);
+  output[pos + 2] = (input[pos + 2] * oneMinusAALevel) + (aaLevel * layer[pos + 2]);
+  output[pos + 3] = 255;
 }
 
 export function doesPixelRGBDirectlyMatch(img1, img2, x, y) {
